@@ -160,7 +160,7 @@ export function TagSelector({
       <div className="relative">
         <div
           className={cn(
-            'flex min-h-13 w-full flex-wrap items-center gap-1 rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm transition focus-within:ring-2 focus-within:ring-ring',
+            'flex min-h-13 w-full flex-wrap items-center gap-2 rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm transition focus-within:ring-2 focus-within:ring-ring',
             isListVisible && 'ring-2 ring-ring',
           )}
           onClick={() => {

@@ -117,24 +117,6 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
                 <Play className="h-4 w-4" />
               </Button>
             )}
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={resetTimer}
-              aria-label="Cancel"
-              className={buttonMotionClasses}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={resetTimer}
-              aria-label="Save"
-              className={buttonMotionClasses}
-            >
-              <Check className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       </CardContent>
