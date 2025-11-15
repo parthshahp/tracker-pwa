@@ -6,7 +6,7 @@ import { Check, Play, Square, X } from 'lucide-react'
 
 import { TagSelector, type TagOption } from '@/components/tag-selector'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 
 type TagLike = string | { id?: string | number; name?: string; label?: string }
 
@@ -46,7 +46,7 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [isRunning, setIsRunning] = useState(false)
   const [selectedTags, setSelectedTags] = useState<TagOption[]>([])
-  const buttonMotionClasses = 'transition-transform ease-in-out active:scale-95'
+  const buttonMotionClasses = 'transition-transform duration-150 ease-in-out active:scale-95'
 
   useEffect(() => {
     if (!isRunning) return
@@ -69,7 +69,6 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
   function resetTimer() {
     setIsRunning(false)
     setElapsedSeconds(0)
-    setSelectedTags([]);
   }
 
   function handleSelectTag(tag: TagOption) {
@@ -85,9 +84,6 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
 
   return (
     <Card className="w-full max-w-2xl">
-      <CardHeader>
-        <CardTitle className="text-xl">Timer</CardTitle>
-      </CardHeader>
       <CardContent className="space-y-6">
         <TagSelector
           availableTags={availableTags}
