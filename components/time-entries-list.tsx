@@ -6,6 +6,7 @@ import { Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { API_ENDPOINTS } from "@/lib/api"
 
 type Tag = {
   id: string,
@@ -23,7 +24,7 @@ type TimeEntry = {
   tags?: Tag[]
 }
 
-const ENTRIES_ENDPOINT = "http://localhost:8787/api/time-entries"
+const ENTRIES_ENDPOINT = API_ENDPOINTS.timeEntries
 
 export default function TimeEntriesList() {
   const queryClient = useQueryClient()

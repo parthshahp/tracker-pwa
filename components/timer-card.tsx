@@ -7,11 +7,11 @@ import { Play, Square } from 'lucide-react'
 import { TagSelector, type TagOption } from '@/components/tag-selector'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { API_ENDPOINTS } from '@/lib/api'
 
 type TagLike = string | { id?: string | number; name?: string; label?: string }
 
-const TAGS_ENDPOINT = 'http://localhost:8787/api/tags'
-const TIME_ENTRIES_ENDPOINT = 'http://localhost:8787/api/time-entries'
+const { tags: TAGS_ENDPOINT, timeEntries: TIME_ENTRIES_ENDPOINT } = API_ENDPOINTS
 
 function formatTime(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600)
