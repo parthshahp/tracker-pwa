@@ -1,8 +1,8 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
-import { Check, Play, Square, X } from 'lucide-react'
+import { Play, Square } from 'lucide-react'
 
 import { TagSelector, type TagOption } from '@/components/tag-selector'
 import { Button } from '@/components/ui/button'
@@ -10,16 +10,8 @@ import { Card, CardContent } from '@/components/ui/card'
 
 type TagLike = string | { id?: string | number; name?: string; label?: string }
 
-const fallbackTags: TagOption[] = [
-  { id: 'meeting', label: 'Meeting' },
-  { id: 'planning', label: 'Planning' },
-  { id: 'design', label: 'Design' },
-  { id: 'development', label: 'Development' },
-  { id: 'testing', label: 'Testing' },
-  { id: 'research', label: 'Research' },
-]
-
 const TAGS_ENDPOINT = 'http://localhost:8787/api/tags'
+const TIME_ENTRIES_ENDPOINT = 'http://localhost:8787/api/time-entries'
 
 function formatTime(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600)
@@ -32,6 +24,7 @@ function formatTime(totalSeconds: number) {
 }
 
 export default function TimerCard({ tags }: { tags?: TagLike[] }) {
+  const queryClient = useQueryClient()
   const { data: remoteTags = [], isLoading, isError } = useQuery({
     queryKey: ['tags'],
     queryFn: fetchTags,
@@ -46,6 +39,11 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [isRunning, setIsRunning] = useState(false)
   const [selectedTags, setSelectedTags] = useState<TagOption[]>([])
+  const [startTimestamp, setStartTimestamp] = useState<Date | null>(null)
+  const [isSavingEntry, setIsSavingEntry] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [tagError, setTagError] = useState<string | null>(null)
+  const [isCreatingTag, setIsCreatingTag] = useState(false)
   const buttonMotionClasses = 'transition-transform duration-150 ease-in-out active:scale-95'
 
   useEffect(() => {
@@ -59,16 +57,39 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
   }, [isRunning])
 
   function handleStart() {
-    setIsRunning(true)
-  }
-
-  function handleStop() {
-    setIsRunning(false)
-  }
-
-  function resetTimer() {
-    setIsRunning(false)
     setElapsedSeconds(0)
+    setIsRunning(true)
+    setStartTimestamp(new Date())
+    setSaveError(null)
+  }
+
+  async function handleStop() {
+    if (!isRunning) return
+
+    setIsRunning(false)
+    const startedAt = startTimestamp
+    const endedAt = new Date()
+    setStartTimestamp(null)
+    setElapsedSeconds(0)
+
+    if (!startedAt) return
+    if (isSavingEntry) return
+
+    setIsSavingEntry(true)
+    try {
+      await postTimeEntry({
+        startAt: startedAt.toISOString(),
+        endAt: endedAt.toISOString(),
+        tagIds: selectedTags.map((tag) => tag.id),
+      })
+      await queryClient.invalidateQueries({ queryKey: ['time-entries'] })
+      setSaveError(null)
+    } catch (error) {
+      console.error(error)
+      setSaveError('Unable to save time entry. Please try again.')
+    } finally {
+      setIsSavingEntry(false)
+    }
   }
 
   function handleSelectTag(tag: TagOption) {
@@ -82,6 +103,23 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
     setSelectedTags((previous) => previous.filter((tag) => tag.id !== tagId))
   }
 
+  async function handleCreateTag(name: string) {
+    const trimmed = name.trim()
+    if (!trimmed || isCreatingTag) return
+    setIsCreatingTag(true)
+    try {
+      const newTag = await postTag(trimmed)
+      handleSelectTag(newTag)
+      setTagError(null)
+      await queryClient.invalidateQueries({ queryKey: ['tags'] })
+    } catch (error) {
+      console.error(error)
+      setTagError('Unable to create tag. Please try again.')
+    } finally {
+      setIsCreatingTag(false)
+    }
+  }
+
   return (
     <Card className="w-full max-w-2xl">
       <CardContent className="space-y-6">
@@ -93,7 +131,15 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
           isLoading={isLoading}
           isError={isError}
           buttonClassName={buttonMotionClasses}
+          onCreateTag={handleCreateTag}
+          isCreatingTag={isCreatingTag}
         />
+        {tagError && (
+          <p className="text-sm text-destructive">{tagError}</p>
+        )}
+        {saveError && (
+          <p className="text-sm text-destructive">{saveError}</p>
+        )}
 
         <div className="flex flex-wrap items-center gap-4">
           <p className="font-mono text-4xl tabular-nums">{formatTime(elapsedSeconds)}</p>
@@ -104,6 +150,7 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
                 onClick={handleStop}
                 aria-label="Stop timer"
                 className={buttonMotionClasses}
+                disabled={isSavingEntry}
               >
                 <Square className="h-4 w-4" />
               </Button>
@@ -113,6 +160,7 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
                 onClick={handleStart}
                 aria-label="Start timer"
                 className={buttonMotionClasses}
+                disabled={isSavingEntry}
               >
                 <Play className="h-4 w-4" />
               </Button>
@@ -133,6 +181,48 @@ async function fetchTags(): Promise<TagOption[]> {
 
   const payload = await response.json()
   return normalizeTags(payload)
+}
+
+async function postTimeEntry(payload: {
+  startAt: string
+  endAt: string
+  tagIds: (string | number)[]
+}) {
+  const response = await fetch(TIME_ENTRIES_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(errorText || 'Failed to save time entry')
+  }
+}
+
+async function postTag(name: string): Promise<TagOption> {
+  const response = await fetch(TAGS_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name }),
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(errorText || 'Failed to create tag')
+  }
+
+  const payload = await response.json()
+  const normalized = toTagOption(payload)
+  if (!normalized) {
+    throw new Error('Invalid tag response')
+  }
+
+  return normalized
 }
 
 function normalizeTags(input: unknown): TagOption[] {
@@ -158,3 +248,12 @@ function toTagOption(item: unknown): TagOption | null {
 
   return { id: maybeIdValue, label: maybeLabel }
 }
+
+const fallbackTags: TagOption[] = [
+  { id: 'meeting', label: 'Meeting' },
+  { id: 'planning', label: 'Planning' },
+  { id: 'design', label: 'Design' },
+  { id: 'development', label: 'Development' },
+  { id: 'testing', label: 'Testing' },
+  { id: 'research', label: 'Research' },
+]

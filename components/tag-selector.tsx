@@ -7,11 +7,12 @@ import {
   useRef,
   useState,
 } from 'react'
-import { X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import {
   Command,
+  CommandEmpty,
   CommandGroup,
   CommandItem,
   CommandList,
@@ -28,6 +29,8 @@ type TagSelectorProps = {
   isLoading?: boolean
   isError?: boolean
   buttonClassName?: string
+  onCreateTag?: (name: string) => Promise<void>
+  isCreatingTag?: boolean
 }
 
 export function TagSelector({
@@ -38,6 +41,8 @@ export function TagSelector({
   isLoading,
   isError,
   buttonClassName,
+  onCreateTag,
+  isCreatingTag,
 }: TagSelectorProps) {
   const [search, setSearch] = useState('')
   const [isListVisible, setIsListVisible] = useState(false)
@@ -62,6 +67,15 @@ export function TagSelector({
     const query = trimmedSearch.toLowerCase()
     return pool.filter((tag) => tag.label.toLowerCase().includes(query))
   }, [availableTags, selectedIds, trimmedSearch])
+
+  const showCreateOption = Boolean(onCreateTag) && Boolean(trimmedSearch)
+  const optionItems = useMemo(() => {
+    const tagOptions = filteredTags.map((tag) => ({ type: 'tag' as const, tag }))
+    return showCreateOption ? [...tagOptions, { type: 'create' as const }] : tagOptions
+  }, [filteredTags, showCreateOption])
+  const visibleItemCount = optionItems.length || 1
+  const popoverRows = Math.min(Math.max(visibleItemCount, 1), 5)
+  const popoverMaxHeight = popoverRows * 44
 
   function renderLabel(label: string) {
     if (!trimmedSearch) return label
@@ -98,6 +112,18 @@ export function TagSelector({
     setIsListVisible(false)
     setSearch('')
     setActiveBadgeIndex(-1)
+  }
+
+  async function handleCreateOption() {
+    if (!onCreateTag || !trimmedSearch) return
+    const label = trimmedSearch
+    try {
+      await onCreateTag(label)
+      setSearch('')
+      setActiveBadgeIndex(-1)
+    } catch (error) {
+      console.error(error)
+    }
   }
 
   function removeByIndex(index: number) {
@@ -172,6 +198,13 @@ export function TagSelector({
             <Badge
               key={tag.id}
               variant="secondary"
+              onClick={(event) => {
+                event.stopPropagation()
+                onRemoveTag(tag.id)
+                setActiveBadgeIndex((previous) =>
+                  previous > index ? previous - 1 : previous === index ? -1 : previous,
+                )
+              }}
               className={cn(
                 'flex items-center px-2 py-2 rounded-xl',
                 activeBadgeIndex === index && 'ring-2 ring-ring',
@@ -184,13 +217,6 @@ export function TagSelector({
                   'rounded-full text-muted-foreground transition hover:text-foreground',
                   buttonClassName,
                 )}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  onRemoveTag(tag.id)
-                  setActiveBadgeIndex((previous) =>
-                    previous > index ? previous - 1 : previous === index ? -1 : previous,
-                  )
-                }}
                 aria-label={`Remove ${tag.label}`}
               >
                 <X className="h-3 w-3" />
@@ -212,11 +238,11 @@ export function TagSelector({
           />
         </div>
 
-        {isListVisible && filteredTags.length > 0 && (
+        {isListVisible && (
           <div
             className="absolute inset-x-0 top-full z-20 mt-2 overflow-hidden rounded-xl border bg-popover p-1 text-sm shadow-lg"
             style={{
-              maxHeight: `${Math.min(filteredTags.length, 5) * 40 + 16}px`,
+              maxHeight: popoverMaxHeight,
             }}
             onMouseDown={(event) => {
               event.preventDefault()
@@ -225,24 +251,39 @@ export function TagSelector({
           >
             <Command>
               <CommandList className="max-h-72 overflow-auto">
-                <CommandGroup>
-                  {filteredTags.map((tag) => (
-                    <CommandItem
-                      key={tag.id}
-                      value={tag.label}
-                      onSelect={() => handleSelect(tag)}
-                    >
-                      {renderLabel(tag.label)}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
+                {filteredTags.length > 0 ? (
+                  <CommandGroup>
+                    {filteredTags.map((tag, index) => (
+                      <CommandItem
+                        key={tag.id}
+                        value={tag.label}
+                        onSelect={() => handleSelect(tag)}
+                      >
+                        {renderLabel(tag.label)}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                ) : !showCreateOption ? (
+                  <CommandEmpty>
+                    {isLoading
+                      ? 'Loading tags...'
+                      : isError
+                        ? 'Unable to load tags'
+                        : 'No tags found.'}
+                  </CommandEmpty>
+                ) : null}
+                {showCreateOption && (
+                  <CommandItem
+                    value={`create-${trimmedSearch}`}
+                    onSelect={() => void handleCreateOption()}
+                    disabled={isCreatingTag}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add "{trimmedSearch}"
+                  </CommandItem>
+                )}
               </CommandList>
             </Command>
-          </div>
-        )}
-        {isListVisible && filteredTags.length === 0 && (
-          <div className="absolute inset-x-0 top-full z-20 mt-2 rounded-xl border bg-popover p-3 text-sm shadow-lg">
-            {isLoading ? 'Loading tags...' : isError ? 'Unable to load tags' : 'No tags found.'}
           </div>
         )}
       </div>
