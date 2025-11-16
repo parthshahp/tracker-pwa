@@ -179,15 +179,15 @@ export function TagSelector({
 
   return (
     <div
-      className="space-y-2"
+      className="space-y-3 text-white/90"
       onFocusCapture={() => setIsListVisible(true)}
       onBlurCapture={handleBlur}
     >
       <div className="relative">
         <div
           className={cn(
-            'flex min-h-13 w-full flex-wrap items-center gap-2 rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm transition focus-within:ring-2 focus-within:ring-ring',
-            isListVisible && 'ring-2 ring-ring',
+            'glass-panel glass-panel-strong flex min-h-13 w-full flex-wrap items-center gap-2 rounded-2xl border border-white/20 px-4 py-2 text-sm shadow-lg transition focus-within:ring-2 focus-within:ring-white/50',
+            isListVisible && 'ring-2 ring-white/60',
           )}
           onClick={() => {
             setActiveBadgeIndex(-1)
@@ -206,15 +206,15 @@ export function TagSelector({
                 )
               }}
               className={cn(
-                'flex items-center px-2 py-2 rounded-xl',
-                activeBadgeIndex === index && 'ring-2 ring-ring',
+                'flex items-center gap-1.5 rounded-2xl border border-white/15 bg-white/10 px-2 py-1 text-white shadow-inner shadow-white/5',
+                activeBadgeIndex === index && 'ring-2 ring-white/60',
               )}
             >
               <span>{tag.label}</span>
               <button
                 type="button"
                 className={cn(
-                  'rounded-full text-muted-foreground transition hover:text-foreground',
+                  'rounded-full text-white/70 transition hover:text-white',
                   buttonClassName,
                 )}
                 aria-label={`Remove ${tag.label}`}
@@ -234,13 +234,13 @@ export function TagSelector({
             onKeyDown={handleInputKeyDown}
             placeholder={selectedTags.length ? 'Add another tag' : 'Type to add tags'}
             aria-label="Add tags"
-            className="flex-1 min-w-[6ch] border-0 bg-transparent p-0 text-sm outline-none placeholder:text-muted-foreground"
+            className="min-w-[6ch] flex-1 border-0 bg-transparent p-0 text-sm text-white placeholder:text-white/60 outline-none"
           />
         </div>
 
         {isListVisible && (
           <div
-            className="absolute inset-x-0 top-full z-20 mt-2 overflow-hidden rounded-xl border bg-popover p-1 text-sm shadow-lg"
+            className="glass-panel glass-panel-strong absolute inset-x-0 top-full z-20 mt-3 overflow-hidden rounded-2xl border border-white/20 p-1 text-sm text-white shadow-2xl shadow-black/40"
             style={{
               maxHeight: popoverMaxHeight,
             }}
@@ -249,22 +249,23 @@ export function TagSelector({
               inputRef.current?.focus()
             }}
           >
-            <Command>
+            <Command className="bg-transparent text-white">
               <CommandList className="max-h-72 overflow-auto">
                 {filteredTags.length > 0 ? (
-                  <CommandGroup>
+                  <CommandGroup className="text-white/80">
                     {filteredTags.map((tag, index) => (
                       <CommandItem
                         key={tag.id}
                         value={tag.label}
                         onSelect={() => handleSelect(tag)}
+                        className="text-white/90 data-[selected=true]:bg-white/15 data-[selected=true]:text-white"
                       >
                         {renderLabel(tag.label)}
                       </CommandItem>
                     ))}
                   </CommandGroup>
                 ) : !showCreateOption ? (
-                  <CommandEmpty>
+                  <CommandEmpty className="py-4 text-white/70">
                     {isLoading
                       ? 'Loading tags...'
                       : isError
@@ -277,6 +278,7 @@ export function TagSelector({
                     value={`create-${trimmedSearch}`}
                     onSelect={() => void handleCreateOption()}
                     disabled={isCreatingTag}
+                    className="text-white/90 data-[selected=true]:bg-white/15 data-[selected=true]:text-white"
                   >
                     <Plus className="mr-2 h-4 w-4" />
                     Add "{trimmedSearch}"

@@ -120,3 +120,17 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .glass-panel {
+    @apply border border-white/10 rounded-3xl backdrop-blur-xl shadow-xl shadow-black/40;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  .glass-panel-strong {
+    @apply backdrop-blur-2xl;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+  }
+}

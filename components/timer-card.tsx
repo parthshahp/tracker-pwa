@@ -121,8 +121,8 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
   }
 
   return (
-    <Card className="w-full max-w-2xl">
-      <CardContent className="space-y-6">
+    <Card className="w-full max-w-2xl glass-panel glass-panel-strong border-white/20 py-0 shadow-2xl shadow-black/40">
+      <CardContent className="space-y-6 px-5 py-6 text-white/90 sm:px-8 sm:py-8">
         <TagSelector
           availableTags={availableTags}
           selectedTags={selectedTags}
@@ -135,21 +135,23 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
           isCreatingTag={isCreatingTag}
         />
         {tagError && (
-          <p className="text-sm text-destructive">{tagError}</p>
+          <p className="text-sm text-rose-200/90">{tagError}</p>
         )}
         {saveError && (
-          <p className="text-sm text-destructive">{saveError}</p>
+          <p className="text-sm text-rose-200/90">{saveError}</p>
         )}
 
         <div className="flex flex-wrap items-center gap-4">
-          <p className="font-mono text-4xl tabular-nums">{formatTime(elapsedSeconds)}</p>
-          <div className="ml-auto flex items-center gap-2">
+          <p className="font-mono text-4xl tabular-nums text-white drop-shadow-lg sm:text-5xl">
+            {formatTime(elapsedSeconds)}
+          </p>
+          <div className="ml-auto flex items-center gap-3">
             {isRunning ? (
               <Button
                 size="icon"
                 onClick={handleStop}
                 aria-label="Stop timer"
-                className={buttonMotionClasses}
+                className={`${buttonMotionClasses} border border-white/30 bg-white/15 text-white hover:bg-white/25 focus-visible:ring-white/60`}
                 disabled={isSavingEntry}
               >
                 <Square className="h-4 w-4" />
@@ -159,7 +161,7 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
                 size="icon"
                 onClick={handleStart}
                 aria-label="Start timer"
-                className={buttonMotionClasses}
+                className={`${buttonMotionClasses} border border-white/30 bg-emerald-400/20 text-white hover:bg-emerald-400/35 focus-visible:ring-white/60`}
                 disabled={isSavingEntry}
               >
                 <Play className="h-4 w-4" />

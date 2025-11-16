@@ -57,42 +57,42 @@ export default function TimeEntriesList() {
   const activeDeletionId = deleteMutation.variables ?? null
 
   if (isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading entries…</p>
+    return <p className="text-sm text-white/70">Loading entries…</p>
   }
 
   if (isError) {
-    return <p className="text-sm text-destructive">Unable to load time entries.</p>
+    return <p className="text-sm text-rose-200/90">Unable to load time entries.</p>
   }
 
   if (!data?.length) {
-    return <p className="text-sm text-muted-foreground">No entries yet.</p>
+    return <p className="text-sm text-white/70">No entries yet.</p>
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {data.map((entry) => (
         <Card
           key={entry.id}
-          className="border border-border/80 shadow-sm py-2"
+          className="glass-panel glass-panel-strong border-white/15 py-0 shadow-xl shadow-black/40"
         >
-          <CardContent className="flex min-h-[48px] items-center justify-between gap-3 rounded-xl px-3 py-1.5 text-xs sm:text-sm">
-            <div className="flex flex-col gap-0.5">
+          <CardContent className="flex min-h-[48px] items-center justify-between gap-4 rounded-2xl px-4 py-3 text-xs text-white/85 sm:text-sm">
+            <div className="flex flex-col gap-1">
               <div className="flex flex-wrap items-center gap-1 font-medium">
-                <span>{formatTime(entry.startAt)}</span>
-                <span className="text-muted-foreground">→</span>
-                <span>{formatTime(entry.endAt)}</span>
-                <span className="text-[11px] text-muted-foreground">
+                <span className="text-white">{formatTime(entry.startAt)}</span>
+                <span className="text-white/60">→</span>
+                <span className="text-white">{formatTime(entry.endAt)}</span>
+                <span className="text-[11px] text-white/60">
                   ({formatDuration(entry.startAt, entry.endAt)})
                 </span>
               </div>
               {!!entry.tags?.length && (
-                <div className="flex flex-wrap gap-1 text-[10px] text-muted-foreground">
+                <div className="flex flex-wrap gap-1 text-[10px] text-white/70">
                   {entry.tags.map((tag, index) => {
                     return (
                       <Badge
                         key={tag.id ?? index}
                         variant="secondary"
-                        className="px-1 py-px text-[10px]"
+                        className="border border-white/20 bg-white/10 px-1.5 py-px text-[10px] text-white"
                       >
                         {tag.name}
                       </Badge>
@@ -105,7 +105,7 @@ export default function TimeEntriesList() {
               type="button"
               variant="ghost"
               size="icon-sm"
-              className="self-center text-muted-foreground transition-transform ease-in-out active:scale-95"
+              className="self-center rounded-full border border-white/10 text-white/70 transition-transform transition-colors ease-in-out hover:bg-white/10 hover:text-white active:scale-95"
               onClick={() => deleteMutation.mutate(entry.id)}
               disabled={
                 deleteMutation.isPending && activeDeletionId === entry.id
