@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  type CSSProperties,
   type FocusEvent,
   useEffect,
   useMemo,
@@ -76,6 +77,15 @@ export function TagSelector({
   const visibleItemCount = optionItems.length || 1
   const popoverRows = Math.min(Math.max(visibleItemCount, 1), 5)
   const popoverMaxHeight = popoverRows * 44
+  const popoverStyle = useMemo(() => ({
+    maxHeight: popoverMaxHeight,
+    backdropFilter: 'blur(40px)',
+    WebkitBackdropFilter: 'blur(40px)',
+    background:
+      'linear-gradient(180deg, rgba(5,7,15,0.72) 0%, rgba(9,13,25,0.82) 55%, rgba(4,6,12,0.78) 100%)',
+  }) satisfies CSSProperties, [popoverMaxHeight])
+  const inputContainerClassName = 'glass-panel glass-panel-strong flex min-h-13 w-full flex-wrap items-center gap-2 rounded-2xl border border-white/20 px-4 py-2 text-sm shadow-lg transition focus-within:ring-2 focus-within:ring-white/50'
+  const dropdownContainerClassName = 'absolute inset-x-0 top-full z-20 mt-3 overflow-hidden rounded-2xl border border-white/25 p-1 text-sm text-white shadow-2xl shadow-black/70 backdrop-blur-3xl'
 
   function renderLabel(label: string) {
     if (!trimmedSearch) return label
@@ -185,43 +195,26 @@ export function TagSelector({
     >
       <div className="relative">
         <div
-          className={cn(
-            'glass-panel glass-panel-strong flex min-h-13 w-full flex-wrap items-center gap-2 rounded-2xl border border-white/20 px-4 py-2 text-sm shadow-lg transition focus-within:ring-2 focus-within:ring-white/50',
-            isListVisible && 'ring-2 ring-white/60',
-          )}
+          className={cn(inputContainerClassName, isListVisible && 'ring-2 ring-white/60')}
           onClick={() => {
             setActiveBadgeIndex(-1)
             inputRef.current?.focus()
           }}
         >
           {selectedTags.map((tag, index) => (
-            <Badge
+            <SelectedTagChip
               key={tag.id}
-              variant="secondary"
-              onClick={(event) => {
+              tag={tag}
+              isActive={activeBadgeIndex === index}
+              buttonClassName={buttonClassName}
+              onRemove={(event) => {
                 event.stopPropagation()
                 onRemoveTag(tag.id)
                 setActiveBadgeIndex((previous) =>
                   previous > index ? previous - 1 : previous === index ? -1 : previous,
                 )
               }}
-              className={cn(
-                'flex items-center gap-1.5 rounded-2xl border border-white/15 bg-white/10 px-2 py-1 text-white shadow-inner shadow-white/5',
-                activeBadgeIndex === index && 'ring-2 ring-white/60',
-              )}
-            >
-              <span>{tag.label}</span>
-              <button
-                type="button"
-                className={cn(
-                  'rounded-full text-white/70 transition hover:text-white',
-                  buttonClassName,
-                )}
-                aria-label={`Remove ${tag.label}`}
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
+            />
           ))}
           <input
             ref={inputRef}
@@ -238,57 +231,130 @@ export function TagSelector({
           />
         </div>
 
-        {isListVisible && (
-          <div
-            className="glass-panel glass-panel-strong absolute inset-x-0 top-full z-20 mt-3 overflow-hidden rounded-2xl border border-white/20 p-1 text-sm text-white shadow-2xl shadow-black/40"
-            style={{
-              maxHeight: popoverMaxHeight,
-            }}
-            onMouseDown={(event) => {
-              event.preventDefault()
-              inputRef.current?.focus()
-            }}
-          >
-            <Command className="bg-transparent text-white">
-              <CommandList className="max-h-72 overflow-auto">
-                {filteredTags.length > 0 ? (
-                  <CommandGroup className="text-white/80">
-                    {filteredTags.map((tag, index) => (
-                      <CommandItem
-                        key={tag.id}
-                        value={tag.label}
-                        onSelect={() => handleSelect(tag)}
-                        className="text-white/90 data-[selected=true]:bg-white/15 data-[selected=true]:text-white"
-                      >
-                        {renderLabel(tag.label)}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                ) : !showCreateOption ? (
-                  <CommandEmpty className="py-4 text-white/70">
-                    {isLoading
-                      ? 'Loading tags...'
-                      : isError
-                        ? 'Unable to load tags'
-                        : 'No tags found.'}
-                  </CommandEmpty>
-                ) : null}
-                {showCreateOption && (
-                  <CommandItem
-                    value={`create-${trimmedSearch}`}
-                    onSelect={() => void handleCreateOption()}
-                    disabled={isCreatingTag}
-                    className="text-white/90 data-[selected=true]:bg-white/15 data-[selected=true]:text-white"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add "{trimmedSearch}"
-                  </CommandItem>
-                )}
-              </CommandList>
-            </Command>
-          </div>
-        )}
+        <TagOptionsDropdown
+          isVisible={isListVisible}
+          containerClassName={dropdownContainerClassName}
+          style={popoverStyle}
+          onRequestFocus={(event) => {
+            event.preventDefault()
+            inputRef.current?.focus()
+          }}
+          filteredTags={filteredTags}
+          renderLabel={renderLabel}
+          showCreateOption={showCreateOption}
+          trimmedSearch={trimmedSearch}
+          isLoading={isLoading}
+          isError={isError}
+          isCreatingTag={isCreatingTag}
+          onSelectTag={handleSelect}
+          onCreateTag={handleCreateOption}
+        />
       </div>
+    </div>
+  )
+}
+
+type SelectedTagChipProps = {
+  tag: TagOption
+  isActive: boolean
+  buttonClassName?: string
+  onRemove: (event: React.MouseEvent<HTMLButtonElement>) => void
+}
+
+function SelectedTagChip({ tag, isActive, buttonClassName, onRemove }: SelectedTagChipProps) {
+  return (
+    <Badge
+      variant="secondary"
+      className={cn(
+        'flex items-center gap-1.5 rounded-2xl border border-white/15 bg-white/10 px-2 py-1 text-white shadow-inner shadow-white/5',
+        isActive && 'ring-2 ring-white/60',
+      )}
+    >
+      <span>{tag.label}</span>
+      <button
+        type="button"
+        className={cn('rounded-full text-white/70 transition hover:text-white', buttonClassName)}
+        aria-label={`Remove ${tag.label}`}
+        onClick={onRemove}
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </Badge>
+  )
+}
+
+type TagOptionsDropdownProps = {
+  isVisible: boolean
+  containerClassName: string
+  style: CSSProperties
+  onRequestFocus: (event: React.MouseEvent<HTMLDivElement>) => void
+  filteredTags: TagOption[]
+  renderLabel: (label: string) => React.ReactNode
+  showCreateOption: boolean
+  trimmedSearch: string
+  isLoading?: boolean
+  isError?: boolean
+  isCreatingTag?: boolean
+  onSelectTag: (tag: TagOption) => void
+  onCreateTag: () => void | Promise<void>
+}
+
+function TagOptionsDropdown({
+  isVisible,
+  containerClassName,
+  style,
+  onRequestFocus,
+  filteredTags,
+  renderLabel,
+  showCreateOption,
+  trimmedSearch,
+  isLoading,
+  isError,
+  isCreatingTag,
+  onSelectTag,
+  onCreateTag,
+}: TagOptionsDropdownProps) {
+  if (!isVisible) return null
+
+  return (
+    <div className={containerClassName} style={style} onMouseDown={onRequestFocus}>
+      <Command className="bg-transparent text-white">
+        <CommandList className="max-h-72 overflow-auto">
+          {filteredTags.length > 0 ? (
+            <CommandGroup className="text-white/80">
+              {filteredTags.map((tag) => (
+                <CommandItem
+                  key={tag.id}
+                  value={tag.label}
+                  onSelect={() => onSelectTag(tag)}
+                  className="text-white/90 data-[selected=true]:bg-white/15 data-[selected=true]:text-white"
+                >
+                  {renderLabel(tag.label)}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          ) : !showCreateOption ? (
+            <CommandEmpty className="py-4 text-white/70">
+              {isLoading
+                ? 'Loading tags...'
+                : isError
+                  ? 'Unable to load tags'
+                  : 'No tags found.'}
+            </CommandEmpty>
+          ) : null}
+          {showCreateOption && (
+            <CommandItem
+              value={`create-${trimmedSearch}`}
+              onSelect={() => void onCreateTag()}
+              disabled={isCreatingTag}
+              className="text-white/90 data-[selected=true]:bg-white/15 data-[selected=true]:text-white"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add "{trimmedSearch}"
+            </CommandItem>
+          )}
+        </CommandList>
+      </Command>
     </div>
   )
 }

@@ -75,7 +75,7 @@ export default function TimeEntriesList() {
           key={entry.id}
           className="glass-panel glass-panel-strong border-white/15 py-0 shadow-xl shadow-black/40"
         >
-          <CardContent className="flex min-h-[48px] items-center justify-between gap-4 rounded-2xl px-4 py-3 text-xs text-white/85 sm:text-sm">
+          <CardContent className="flex min-h-12 items-center justify-between gap-4 rounded-2xl px-4 py-3 text-xs text-white/85 sm:text-sm">
             <div className="flex flex-col gap-1">
               <div className="flex flex-wrap items-center gap-1 font-medium">
                 <span className="text-white">{formatTime(entry.startAt)}</span>
@@ -105,7 +105,7 @@ export default function TimeEntriesList() {
               type="button"
               variant="ghost"
               size="icon-sm"
-              className="self-center rounded-full border border-white/10 text-white/70 transition-transform transition-colors ease-in-out hover:bg-white/10 hover:text-white active:scale-95"
+              className="self-center rounded-full border border-white/10 text-white/70 transition-colors ease-in-out hover:bg-white/10 hover:text-white active:scale-95"
               onClick={() => deleteMutation.mutate(entry.id)}
               disabled={
                 deleteMutation.isPending && activeDeletionId === entry.id
