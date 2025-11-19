@@ -5,7 +5,6 @@ import { Trash2 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { API_ENDPOINTS } from "@/lib/api"
 
 type Tag = {
@@ -69,35 +68,33 @@ export default function TimeEntriesList() {
   }
 
   return (
-    <div className="space-y-3">
-      {data.map((entry) => (
-        <Card
-          key={entry.id}
-          className="glass-panel glass-panel-strong border-white/15 py-0 shadow-xl shadow-black/40"
-        >
-          <CardContent className="flex min-h-12 items-center justify-between gap-4 rounded-2xl px-4 py-3 text-xs text-white/85 sm:text-sm">
-            <div className="flex flex-col gap-1">
+    <div className="rounded-2xl border border-white/10 bg-white/5 shadow-inner shadow-black/30 backdrop-blur-xl">
+      <ul className="divide-y divide-white/10">
+        {data.map((entry) => (
+          <li
+            key={entry.id}
+            className="group flex items-start gap-4 px-4 py-3 text-xs text-white/85 transition-colors duration-200 hover:bg-white/5 focus-within:bg-white/10 sm:items-center sm:text-sm"
+          >
+            <div className="flex flex-1 flex-col gap-1">
               <div className="flex flex-wrap items-center gap-1 font-medium">
                 <span className="text-white">{formatTime(entry.startAt)}</span>
                 <span className="text-white/60">→</span>
                 <span className="text-white">{formatTime(entry.endAt)}</span>
-                <span className="text-[11px] text-white/60">
+                <span className="text-[11px] text-white/60 sm:text-xs">
                   ({formatDuration(entry.startAt, entry.endAt)})
                 </span>
               </div>
               {!!entry.tags?.length && (
-                <div className="flex flex-wrap gap-1 text-[10px] text-white/70">
-                  {entry.tags.map((tag, index) => {
-                    return (
-                      <Badge
-                        key={tag.id ?? index}
-                        variant="secondary"
-                        className="border border-white/20 bg-white/10 px-1.5 py-px text-[10px] text-white"
-                      >
-                        {tag.name}
-                      </Badge>
-                    )
-                  })}
+                <div className="flex flex-wrap gap-1 text-[10px] text-white/70 sm:text-[11px]">
+                  {entry.tags.map((tag, index) => (
+                    <Badge
+                      key={tag.id ?? index}
+                      variant="secondary"
+                      className="border border-white/20 bg-white/10 px-1.5 py-px text-[10px] text-white"
+                    >
+                      {tag.name}
+                    </Badge>
+                  ))}
                 </div>
               )}
             </div>
@@ -105,7 +102,7 @@ export default function TimeEntriesList() {
               type="button"
               variant="ghost"
               size="icon-sm"
-              className="self-center rounded-full border border-white/10 text-white/70 transition-colors ease-in-out hover:bg-white/10 hover:text-white active:scale-95"
+              className="ml-auto self-start rounded-full border border-white/10 text-white/70 opacity-100 transition-all duration-150 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/70 active:scale-95 sm:self-center sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
               onClick={() => deleteMutation.mutate(entry.id)}
               disabled={
                 deleteMutation.isPending && activeDeletionId === entry.id
@@ -114,9 +111,9 @@ export default function TimeEntriesList() {
             >
               <Trash2 className="h-4 w-4" />
             </Button>
-          </CardContent>
-        </Card>
-      ))}
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
