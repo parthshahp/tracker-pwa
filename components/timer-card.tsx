@@ -9,7 +9,15 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { API_ENDPOINTS } from '@/lib/api'
 
-type TagLike = string | { id?: string | number; name?: string; label?: string }
+type TagLike =
+  | string
+  | {
+      id?: string | number
+      name?: string
+      label?: string
+      color?: string | null
+    }
+  | { id?: string | number; name?: string; label?: string; color?: string | null }
 
 const { tags: TAGS_ENDPOINT, timeEntries: TIME_ENTRIES_ENDPOINT } = API_ENDPOINTS
 
@@ -103,18 +111,19 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
     setSelectedTags((previous) => previous.filter((tag) => tag.id !== tagId))
   }
 
-  async function handleCreateTag(name: string) {
-    const trimmed = name.trim()
+  async function handleCreateTag(input: { name: string; color: string }) {
+    const trimmed = input.name.trim()
     if (!trimmed || isCreatingTag) return
     setIsCreatingTag(true)
     try {
-      const newTag = await postTag(trimmed)
+      const newTag = await postTag({ name: trimmed, color: input.color })
       handleSelectTag(newTag)
       setTagError(null)
       await queryClient.invalidateQueries({ queryKey: ['tags'] })
     } catch (error) {
       console.error(error)
       setTagError('Unable to create tag. Please try again.')
+      throw error
     } finally {
       setIsCreatingTag(false)
     }
@@ -204,13 +213,13 @@ async function postTimeEntry(payload: {
   }
 }
 
-async function postTag(name: string): Promise<TagOption> {
+async function postTag(payload: { name: string; color: string }): Promise<TagOption> {
   const response = await fetch(TAGS_ENDPOINT, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(payload),
   })
 
   if (!response.ok) {
@@ -218,8 +227,8 @@ async function postTag(name: string): Promise<TagOption> {
     throw new Error(errorText || 'Failed to create tag')
   }
 
-  const payload = await response.json()
-  const normalized = toTagOption(payload)
+  const responsePayload = await response.json()
+  const normalized = toTagOption(responsePayload)
   if (!normalized) {
     throw new Error('Invalid tag response')
   }
@@ -242,20 +251,22 @@ function toTagOption(item: unknown): TagOption | null {
 
   if (!item || typeof item !== 'object') return null
 
-  const maybeName = 'name' in item && typeof item.name === 'string' ? item.name : undefined
-  const maybeLabel = 'label' in item && typeof item.label === 'string' ? item.label : maybeName
-  const maybeIdValue = 'id' in item && item.id != null ? String(item.id) : maybeLabel
+  const record = item as Record<string, unknown>
+  const maybeName = typeof record.name === 'string' ? record.name : undefined
+  const maybeLabel = typeof record.label === 'string' ? record.label : maybeName
+  const idValue = record.id != null ? String(record.id) : maybeLabel
+  const maybeColor = typeof record.color === 'string' ? record.color : undefined
 
-  if (!maybeLabel || !maybeIdValue) return null
+  if (!maybeLabel || !idValue) return null
 
-  return { id: maybeIdValue, label: maybeLabel }
+  return { id: idValue, label: maybeLabel, color: maybeColor }
 }
 
 const fallbackTags: TagOption[] = [
-  { id: 'meeting', label: 'Meeting' },
-  { id: 'planning', label: 'Planning' },
-  { id: 'design', label: 'Design' },
-  { id: 'development', label: 'Development' },
-  { id: 'testing', label: 'Testing' },
-  { id: 'research', label: 'Research' },
+  { id: 'meeting', label: 'Meeting', color: '#8b5cf6' },
+  { id: 'planning', label: 'Planning', color: '#0ea5e9' },
+  { id: 'design', label: 'Design', color: '#f472b6' },
+  { id: 'development', label: 'Development', color: '#22c55e' },
+  { id: 'testing', label: 'Testing', color: '#f97316' },
+  { id: 'research', label: 'Research', color: '#eab308' },
 ]
