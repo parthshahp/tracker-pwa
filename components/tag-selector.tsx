@@ -346,7 +346,7 @@ function SelectedTagChip({
     <Badge
       variant="secondary"
       className={cn(
-        "cursor-pointer flex items-center gap-1.5 rounded-2xl border px-2 py-1 text-white shadow-inner shadow-white/5",
+        "group flex cursor-pointer items-center gap-1.5 rounded-2xl border px-2 py-1 text-white shadow-inner shadow-white/5",
         isActive && "ring-2 ring-white/60",
       )}
       style={getTagBadgeStyles(tag.color)}
@@ -359,7 +359,7 @@ function SelectedTagChip({
       <button
         type="button"
         className={cn(
-          "cursor-pointer rounded-full text-white/70 transition hover:text-white",
+          "cursor-pointer rounded-full text-white/70 transition group-hover:text-white group-focus-within:text-white hover:text-white",
           buttonClassName,
         )}
         aria-label={`Remove ${tag.label}`}
@@ -515,14 +515,25 @@ function CreateTagDialog({
               Color (hex)
             </Label>
             <div className="flex items-center gap-3">
-              <input
-                type="color"
-                aria-label="Choose color"
-                value={previewColor}
-                onChange={(event) => onColorChange(event.target.value)}
-                disabled={isSubmitting}
-                className="h-11 w-11 cursor-pointer rounded-full border border-white/20 bg-transparent p-0"
-              />
+              <div className="relative h-8 w-8 shrink-0">
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "pointer-events-none block h-full w-full rounded-full border border-white/20 shadow-inner shadow-black/50 transition-opacity",
+                    isSubmitting && "opacity-60",
+                  )}
+                  style={{ backgroundColor: previewColor }}
+                />
+                <input
+                  type="color"
+                  aria-label="Choose color"
+                  value={previewColor}
+                  onChange={(event) => onColorChange(event.target.value)}
+                  disabled={isSubmitting}
+                  className="absolute inset-0 h-full w-full cursor-pointer rounded-full border-0 bg-transparent p-0 opacity-0 appearance-none"
+                  style={{ WebkitAppearance: "none" }}
+                />
+              </div>
               <Input
                 id={colorInputId}
                 value={colorValue}
