@@ -6,12 +6,13 @@ import { Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { API_ENDPOINTS } from "@/lib/api"
+import { getTagBadgeStyles } from "@/lib/tag-colors"
 
 type Tag = {
   id: string,
   userId: string,
   name: string,
-  color?: string,
+  color?: string | null,
   updatedAt: string,
   createdAt: string,
 }
@@ -90,7 +91,8 @@ export default function TimeEntriesList() {
                     <Badge
                       key={tag.id ?? index}
                       variant="secondary"
-                      className="border border-white/20 bg-white/10 px-1.5 py-px text-[10px] text-white"
+                      className="border px-1.5 py-px text-[10px] text-white"
+                      style={getTagBadgeStyles(tag.color)}
                     >
                       {tag.name}
                     </Badge>

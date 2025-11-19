@@ -5,6 +5,7 @@ import {
   type FocusEvent,
   type KeyboardEvent,
   type ReactNode,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -12,6 +13,7 @@ import {
 import { Plus, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -19,9 +21,24 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  DEFAULT_TAG_COLOR,
+  getTagBadgeStyles,
+  normalizeHexColor,
+} from "@/lib/tag-colors";
 import { cn } from "@/lib/utils";
 
-export type TagOption = { id: string; label: string };
+export type TagOption = { id: string; label: string; color?: string | null };
 
 type TagSelectorProps = {
   availableTags: TagOption[];
@@ -31,7 +48,7 @@ type TagSelectorProps = {
   isLoading?: boolean;
   isError?: boolean;
   buttonClassName?: string;
-  onCreateTag?: (name: string) => Promise<void>;
+  onCreateTag?: (input: { name: string; color: string }) => Promise<void>;
   isCreatingTag?: boolean;
 };
 
@@ -49,7 +66,12 @@ export function TagSelector({
   const [search, setSearch] = useState("");
   const [isListVisible, setIsListVisible] = useState(false);
   const [activeTagId, setActiveTagId] = useState<string | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [pendingTagName, setPendingTagName] = useState("");
+  const [pendingTagColor, setPendingTagColor] = useState(DEFAULT_TAG_COLOR);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogNameId = useId();
+  const dialogColorId = useId();
 
   const trimmedSearch = search.trim();
   const selectedIds = useMemo(
@@ -136,15 +158,39 @@ export function TagSelector({
     setActiveTagId(null);
   }
 
-  async function handleCreateOption() {
+  function handleCreateOption() {
     if (!onCreateTag || !trimmedSearch) return;
-    const label = trimmedSearch;
+    setPendingTagName(trimmedSearch);
+    setIsCreateDialogOpen(true);
+    setIsListVisible(false);
+    setActiveTagId(null);
+  }
+
+  async function handleConfirmCreateTag() {
+    if (!onCreateTag) return;
+    const trimmedName = pendingTagName.trim();
+    if (!trimmedName) return;
+    const normalizedColor =
+      normalizeHexColor(pendingTagColor) ?? DEFAULT_TAG_COLOR;
     try {
-      await onCreateTag(label);
+      await onCreateTag({ name: trimmedName, color: normalizedColor });
       setSearch("");
+      setPendingTagName("");
+      setPendingTagColor(DEFAULT_TAG_COLOR);
+      setIsCreateDialogOpen(false);
+      setIsListVisible(false);
       setActiveTagId(null);
-    } catch (error) {
-      console.error(error);
+    } catch {
+      // Error handled by parent component
+    }
+  }
+
+  function handleCreateDialogOpenChange(isOpen: boolean) {
+    if (!isOpen && isCreatingTag) return;
+    setIsCreateDialogOpen(isOpen);
+    if (!isOpen) {
+      setPendingTagName("");
+      setPendingTagColor(DEFAULT_TAG_COLOR);
     }
   }
 
@@ -160,9 +206,7 @@ export function TagSelector({
     if (event.key === "ArrowLeft" && !search) {
       event.preventDefault();
       if (activeBadgeIndex === -1) {
-        setActiveTagId(
-          selectedTags[selectedTags.length - 1]?.id ?? null,
-        );
+        setActiveTagId(selectedTags[selectedTags.length - 1]?.id ?? null);
       } else if (activeBadgeIndex > 0) {
         setActiveTagId(selectedTags[activeBadgeIndex - 1]?.id ?? null);
       }
@@ -266,9 +310,21 @@ export function TagSelector({
           isError={isError}
           isCreatingTag={isCreatingTag}
           onSelectTag={handleSelect}
-          onCreateTag={handleCreateOption}
+          onRequestCreateTag={handleCreateOption}
         />
       </div>
+      <CreateTagDialog
+        open={isCreateDialogOpen}
+        name={pendingTagName}
+        colorValue={pendingTagColor}
+        isSubmitting={Boolean(isCreatingTag)}
+        onOpenChange={handleCreateDialogOpenChange}
+        onNameChange={setPendingTagName}
+        onColorChange={setPendingTagColor}
+        onSubmit={handleConfirmCreateTag}
+        nameInputId={dialogNameId}
+        colorInputId={dialogColorId}
+      />
     </div>
   );
 }
@@ -290,9 +346,10 @@ function SelectedTagChip({
     <Badge
       variant="secondary"
       className={cn(
-        "flex items-center gap-1.5 rounded-2xl border border-white/15 bg-white/10 px-2 py-1 text-white shadow-inner shadow-white/5",
+        "cursor-pointer flex items-center gap-1.5 rounded-2xl border px-2 py-1 text-white shadow-inner shadow-white/5",
         isActive && "ring-2 ring-white/60",
       )}
+      style={getTagBadgeStyles(tag.color)}
       onClick={(event) => {
         event.stopPropagation();
         onRemove();
@@ -302,7 +359,7 @@ function SelectedTagChip({
       <button
         type="button"
         className={cn(
-          "rounded-full text-white/70 transition hover:text-white",
+          "cursor-pointer rounded-full text-white/70 transition hover:text-white",
           buttonClassName,
         )}
         aria-label={`Remove ${tag.label}`}
@@ -330,7 +387,7 @@ type TagOptionsDropdownProps = {
   isError?: boolean;
   isCreatingTag?: boolean;
   onSelectTag: (tag: TagOption) => void;
-  onCreateTag: () => void | Promise<void>;
+  onRequestCreateTag: () => void;
 };
 
 function TagOptionsDropdown({
@@ -346,7 +403,7 @@ function TagOptionsDropdown({
   isError,
   isCreatingTag,
   onSelectTag,
-  onCreateTag,
+  onRequestCreateTag,
 }: TagOptionsDropdownProps) {
   if (!isVisible) return null;
 
@@ -383,7 +440,7 @@ function TagOptionsDropdown({
           {showCreateOption && (
             <CommandItem
               value={`create-${trimmedSearch}`}
-              onSelect={() => void onCreateTag()}
+              onSelect={() => onRequestCreateTag()}
               disabled={isCreatingTag}
               className="text-white/90 data-[selected=true]:bg-white/15 data-[selected=true]:text-white"
             >
@@ -394,5 +451,111 @@ function TagOptionsDropdown({
         </CommandList>
       </Command>
     </div>
+  );
+}
+
+type CreateTagDialogProps = {
+  open: boolean;
+  name: string;
+  colorValue: string;
+  isSubmitting: boolean;
+  onOpenChange: (open: boolean) => void;
+  onNameChange: (value: string) => void;
+  onColorChange: (value: string) => void;
+  onSubmit: () => void | Promise<void>;
+  nameInputId: string;
+  colorInputId: string;
+};
+
+function CreateTagDialog({
+  open,
+  name,
+  colorValue,
+  isSubmitting,
+  onOpenChange,
+  onNameChange,
+  onColorChange,
+  onSubmit,
+  nameInputId,
+  colorInputId,
+}: CreateTagDialogProps) {
+  const previewColor = normalizeHexColor(colorValue) ?? DEFAULT_TAG_COLOR;
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void onSubmit();
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="glass-panel glass-panel-strong border-white/15 bg-[#05070f]/90 text-white/90 backdrop-blur-3xl">
+        <DialogHeader>
+          <DialogTitle>Create tag</DialogTitle>
+          <DialogDescription className="text-white/70">
+            Set a name and color for your new tag.
+          </DialogDescription>
+        </DialogHeader>
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          <div className="space-y-2">
+            <Label htmlFor={nameInputId} className="text-white/80">
+              Name
+            </Label>
+            <Input
+              id={nameInputId}
+              value={name}
+              onChange={(event) => onNameChange(event.target.value)}
+              placeholder="Design review"
+              autoComplete="off"
+              autoFocus
+              disabled={isSubmitting}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={colorInputId} className="text-white/80">
+              Color (hex)
+            </Label>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                aria-label="Choose color"
+                value={previewColor}
+                onChange={(event) => onColorChange(event.target.value)}
+                disabled={isSubmitting}
+                className="h-11 w-11 cursor-pointer rounded-full border border-white/20 bg-transparent p-0"
+              />
+              <Input
+                id={colorInputId}
+                value={colorValue}
+                onChange={(event) => onColorChange(event.target.value)}
+                placeholder="#6B7280"
+                autoComplete="off"
+                disabled={isSubmitting}
+              />
+            </div>
+            <p className="text-xs text-white/60">
+              Use a 6-digit hex color (e.g., #2563eb).
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-white/70 hover:text-white"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="border border-white/20 bg-white/10 text-white hover:bg-white/20"
+              disabled={isSubmitting || !name.trim()}
+            >
+              {isSubmitting ? "Saving..." : "Save tag"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
