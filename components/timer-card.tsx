@@ -8,6 +8,8 @@ import { TagSelector, type TagOption } from '@/components/tag-selector'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { API_ENDPOINTS } from '@/lib/api'
+import { startTimer, stopTimer } from '@/lib/commands'
+import { syncPendingOps } from '@/lib/sync'
 
 type TagLike =
   | string
@@ -19,7 +21,7 @@ type TagLike =
     }
   | { id?: string | number; name?: string; label?: string; color?: string | null }
 
-const { tags: TAGS_ENDPOINT, timeEntries: TIME_ENTRIES_ENDPOINT } = API_ENDPOINTS
+const { tags: TAGS_ENDPOINT } = API_ENDPOINTS
 
 function formatTime(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600)
@@ -46,8 +48,9 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
   }, [remoteTags, providedTags])
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [isRunning, setIsRunning] = useState(false)
+  const [currentEntryId, setCurrentEntryId] = useState<string | null>(null)
   const [selectedTags, setSelectedTags] = useState<TagOption[]>([])
-  const [startTimestamp, setStartTimestamp] = useState<Date | null>(null)
+  const [isStartingEntry, setIsStartingEntry] = useState(false)
   const [isSavingEntry, setIsSavingEntry] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [tagError, setTagError] = useState<string | null>(null)
@@ -64,32 +67,42 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
     return () => clearInterval(interval)
   }, [isRunning])
 
-  function handleStart() {
-    setElapsedSeconds(0)
-    setIsRunning(true)
-    setStartTimestamp(new Date())
+  async function handleStart() {
+    if (isRunning || isStartingEntry) return
+
+    setIsStartingEntry(true)
     setSaveError(null)
+    setElapsedSeconds(0)
+
+    try {
+      const entryId = await startTimer(selectedTags.map((tag) => String(tag.id)))
+      setCurrentEntryId(entryId)
+      setIsRunning(true)
+      await syncPendingOps()
+      await queryClient.invalidateQueries({ queryKey: ['time-entries'] })
+    } catch (error) {
+      console.error(error)
+      setSaveError('Unable to start timer. Please try again.')
+    } finally {
+      setIsStartingEntry(false)
+    }
   }
 
   async function handleStop() {
-    if (!isRunning) return
+    if (!isRunning || isSavingEntry) return
+    if (!currentEntryId) {
+      setSaveError('No active timer found.')
+      return
+    }
 
     setIsRunning(false)
-    const startedAt = startTimestamp
-    const endedAt = new Date()
-    setStartTimestamp(null)
     setElapsedSeconds(0)
-
-    if (!startedAt) return
-    if (isSavingEntry) return
 
     setIsSavingEntry(true)
     try {
-      await postTimeEntry({
-        startAt: startedAt.toISOString(),
-        endAt: endedAt.toISOString(),
-        tagIds: selectedTags.map((tag) => tag.id),
-      })
+      await stopTimer(currentEntryId)
+      await syncPendingOps()
+      setCurrentEntryId(null)
       await queryClient.invalidateQueries({ queryKey: ['time-entries'] })
       setSaveError(null)
     } catch (error) {
@@ -171,7 +184,7 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
                 onClick={handleStart}
                 aria-label="Start timer"
                 className={`${buttonMotionClasses} border border-white/30 bg-emerald-400/20 text-white hover:bg-emerald-400/35 focus-visible:ring-white/60`}
-                disabled={isSavingEntry}
+                disabled={isSavingEntry || isStartingEntry}
               >
                 <Play className="h-4 w-4" />
               </Button>
@@ -192,25 +205,6 @@ async function fetchTags(): Promise<TagOption[]> {
 
   const payload = await response.json()
   return normalizeTags(payload)
-}
-
-async function postTimeEntry(payload: {
-  startAt: string
-  endAt: string
-  tagIds: (string | number)[]
-}) {
-  const response = await fetch(TIME_ENTRIES_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  })
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(errorText || 'Failed to save time entry')
-  }
 }
 
 async function postTag(payload: { name: string; color: string }): Promise<TagOption> {

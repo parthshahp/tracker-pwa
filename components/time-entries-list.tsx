@@ -6,6 +6,8 @@ import { Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { API_ENDPOINTS } from "@/lib/api";
+import { softDeleteTimeEntry } from "@/lib/commands";
+import { syncPendingOps } from "@/lib/sync";
 import { getTagBadgeStyles } from "@/lib/tag-colors";
 
 type Tag = {
@@ -79,7 +81,7 @@ export default function TimeEntriesList() {
         {data.map((entry) => (
           <li
             key={entry.id}
-            className="group flex items-start gap-4 py-3 px-2 text-xs text-white/85 transition-colors duration-200 hover:bg-white/5 focus-within:bg-white/10 sm:items-center sm:text-sm"
+            className="group flex items-start gap-4 py-3 px-2 text-xs text-white/85 transition-colors hover:bg-white/5 focus-within:bg-white/10 sm:items-center sm:text-sm"
           >
             <div className="flex flex-1 flex-col gap-1">
               <div className="flex flex-wrap items-center gap-1 font-medium">
@@ -169,12 +171,6 @@ function formatDuration(start: string, end: string | null) {
 }
 
 async function deleteEntry(id: string | number) {
-  const response = await fetch(`${ENTRIES_ENDPOINT}/${id}`, {
-    method: "DELETE",
-  });
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || "Failed to delete entry");
-  }
+  await softDeleteTimeEntry(String(id));
+  await syncPendingOps();
 }
