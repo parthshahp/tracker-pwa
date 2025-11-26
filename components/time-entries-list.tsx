@@ -78,50 +78,54 @@ export default function TimeEntriesList() {
   return (
     <div className="rounded-2xl shadow-black/30">
       <ul className="divide-y divide-white/10">
-        {data.map((entry) => (
-          <li
-            key={entry.id}
-            className="group flex items-start gap-4 py-3 px-2 text-xs text-white/85 transition-colors hover:bg-white/5 focus-within:bg-white/10 sm:items-center sm:text-sm"
-          >
-            <div className="flex flex-1 flex-col gap-1">
-              <div className="flex flex-wrap items-center gap-1 font-medium">
-                <span className="text-white">{formatTime(entry.startAt)}</span>
-                <span className="text-white/60">→</span>
-                <span className="text-white">{formatTime(entry.endAt)}</span>
-                <span className="text-[11px] text-white/60 sm:text-xs">
-                  ({formatDuration(entry.startAt, entry.endAt)})
-                </span>
-              </div>
-              {!!entry.tags?.length && (
-                <div className="flex flex-wrap gap-1 text-[10px] text-white/70 sm:text-[11px]">
-                  {entry.tags.map((tag, index) => (
-                    <Badge
-                      key={tag.id ?? index}
-                      variant="secondary"
-                      className="border px-1.5 py-px text-[10px] text-white"
-                      style={getTagBadgeStyles(tag.color)}
-                    >
-                      {tag.name}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              className="ml-auto self-start rounded-full border border-white/10 text-white/70 opacity-100 transition-all duration-150 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/70 active:scale-95 sm:self-center sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
-              onClick={() => deleteMutation.mutate(entry.id)}
-              disabled={
-                deleteMutation.isPending && activeDeletionId === entry.id
-              }
-              aria-label="Delete time entry"
+        {data
+          .filter((entry) => entry.endAt)
+          .map((entry) => (
+            <li
+              key={entry.id}
+              className="group flex items-start gap-4 py-3 px-2 text-xs text-white/85 transition-colors hover:bg-white/5 focus-within:bg-white/10 sm:items-center sm:text-sm"
             >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </li>
-        ))}
+              <div className="flex flex-1 flex-col gap-1">
+                <div className="flex flex-wrap items-center gap-1 font-medium">
+                  <span className="text-white">
+                    {formatTime(entry.startAt)}
+                  </span>
+                  <span className="text-white/60">→</span>
+                  <span className="text-white">{formatTime(entry.endAt)}</span>
+                  <span className="text-[11px] text-white/60 sm:text-xs">
+                    ({formatDuration(entry.startAt, entry.endAt)})
+                  </span>
+                </div>
+                {!!entry.tags?.length && (
+                  <div className="flex flex-wrap gap-1 text-[10px] text-white/70 sm:text-[11px]">
+                    {entry.tags.map((tag, index) => (
+                      <Badge
+                        key={tag.id ?? index}
+                        variant="secondary"
+                        className="border px-1.5 py-px text-[10px] text-white"
+                        style={getTagBadgeStyles(tag.color)}
+                      >
+                        {tag.name}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="ml-auto self-start rounded-full border border-white/10 text-white/70 opacity-100 transition-all duration-150 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/70 active:scale-95 sm:self-center sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                onClick={() => deleteMutation.mutate(entry.id)}
+                disabled={
+                  deleteMutation.isPending && activeDeletionId === entry.id
+                }
+                aria-label="Delete time entry"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </li>
+          ))}
       </ul>
     </div>
   );

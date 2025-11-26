@@ -1,144 +1,156 @@
-'use client'
+"use client";
 
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useMemo, useState } from 'react'
-import { Play, Square } from 'lucide-react'
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { Play, Square } from "lucide-react";
 
-import { TagSelector, type TagOption } from '@/components/tag-selector'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { API_ENDPOINTS } from '@/lib/api'
-import { startTimer, stopTimer } from '@/lib/commands'
-import { syncPendingOps } from '@/lib/sync'
+import { TagSelector, type TagOption } from "@/components/tag-selector";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { API_ENDPOINTS } from "@/lib/api";
+import { startTimer, stopTimer } from "@/lib/commands";
+import { syncPendingOps } from "@/lib/sync";
 
 type TagLike =
   | string
   | {
-      id?: string | number
-      name?: string
-      label?: string
-      color?: string | null
-    }
-  | { id?: string | number; name?: string; label?: string; color?: string | null }
+    id?: string | number;
+    name?: string;
+    label?: string;
+    color?: string | null;
+  }
+  | {
+    id?: string | number;
+    name?: string;
+    label?: string;
+    color?: string | null;
+  };
 
-const { tags: TAGS_ENDPOINT } = API_ENDPOINTS
+const { tags: TAGS_ENDPOINT } = API_ENDPOINTS;
 
 function formatTime(totalSeconds: number) {
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
 
   return [hours, minutes, seconds]
-    .map((value) => value.toString().padStart(2, '0'))
-    .join(':')
+    .map((value) => value.toString().padStart(2, "0"))
+    .join(":");
 }
 
 export default function TimerCard({ tags }: { tags?: TagLike[] }) {
-  const queryClient = useQueryClient()
-  const { data: remoteTags = [], isLoading, isError } = useQuery({
-    queryKey: ['tags'],
+  const queryClient = useQueryClient();
+  const {
+    data: remoteTags = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["tags"],
     queryFn: fetchTags,
     staleTime: 60_000,
-  })
-  const providedTags = useMemo(() => normalizeTags(tags), [tags])
+  });
+  const providedTags = useMemo(() => normalizeTags(tags), [tags]);
   const availableTags = useMemo<TagOption[]>(() => {
-    if (remoteTags.length) return remoteTags
-    if (providedTags.length) return providedTags
-    return fallbackTags
-  }, [remoteTags, providedTags])
-  const [elapsedSeconds, setElapsedSeconds] = useState(0)
-  const [isRunning, setIsRunning] = useState(false)
-  const [currentEntryId, setCurrentEntryId] = useState<string | null>(null)
-  const [selectedTags, setSelectedTags] = useState<TagOption[]>([])
-  const [isStartingEntry, setIsStartingEntry] = useState(false)
-  const [isSavingEntry, setIsSavingEntry] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const [tagError, setTagError] = useState<string | null>(null)
-  const [isCreatingTag, setIsCreatingTag] = useState(false)
-  const buttonMotionClasses = 'transition-transform duration-150 ease-in-out active:scale-95'
+    if (remoteTags.length) return remoteTags;
+    if (providedTags.length) return providedTags;
+    return fallbackTags;
+  }, [remoteTags, providedTags]);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+  const [currentEntryId, setCurrentEntryId] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<TagOption[]>([]);
+  const [isStartingEntry, setIsStartingEntry] = useState(false);
+  const [isSavingEntry, setIsSavingEntry] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [tagError, setTagError] = useState<string | null>(null);
+  const [isCreatingTag, setIsCreatingTag] = useState(false);
+  const buttonMotionClasses =
+    "transition-transform duration-150 ease-in-out active:scale-90";
 
   useEffect(() => {
-    if (!isRunning) return
+    if (!isRunning) return;
 
     const interval = setInterval(() => {
-      setElapsedSeconds((seconds) => seconds + 1)
-    }, 1000)
+      setElapsedSeconds((seconds) => seconds + 1);
+    }, 1000);
 
-    return () => clearInterval(interval)
-  }, [isRunning])
+    return () => clearInterval(interval);
+  }, [isRunning]);
 
   async function handleStart() {
-    if (isRunning || isStartingEntry) return
+    if (isRunning || isStartingEntry) return;
 
-    setIsStartingEntry(true)
-    setSaveError(null)
-    setElapsedSeconds(0)
+    setIsStartingEntry(true);
+    setSaveError(null);
+    setElapsedSeconds(0);
 
     try {
-      const entryId = await startTimer(selectedTags.map((tag) => String(tag.id)))
-      setCurrentEntryId(entryId)
-      setIsRunning(true)
-      await syncPendingOps()
-      await queryClient.invalidateQueries({ queryKey: ['time-entries'] })
+      const entryId = await startTimer(
+        selectedTags.map((tag) => String(tag.id)),
+      );
+      setCurrentEntryId(entryId);
+      setIsRunning(true);
+      await syncPendingOps();
+      await queryClient.invalidateQueries({ queryKey: ["time-entries"] });
     } catch (error) {
-      console.error(error)
-      setSaveError('Unable to start timer. Please try again.')
+      console.error(error);
+      setSaveError("Unable to start timer. Please try again.");
     } finally {
-      setIsStartingEntry(false)
+      setIsStartingEntry(false);
     }
   }
 
   async function handleStop() {
-    if (!isRunning || isSavingEntry) return
+    if (!isRunning || isSavingEntry) return;
     if (!currentEntryId) {
-      setSaveError('No active timer found.')
-      return
+      setSaveError("No active timer found.");
+      return;
     }
 
-    setIsRunning(false)
-    setElapsedSeconds(0)
+    setIsRunning(false);
+    setElapsedSeconds(0);
 
-    setIsSavingEntry(true)
+    setIsSavingEntry(true);
     try {
-      await stopTimer(currentEntryId)
-      await syncPendingOps()
-      setCurrentEntryId(null)
-      await queryClient.invalidateQueries({ queryKey: ['time-entries'] })
-      setSaveError(null)
+      await stopTimer(currentEntryId);
+      await syncPendingOps();
+      setCurrentEntryId(null);
+      await queryClient.invalidateQueries({ queryKey: ["time-entries"] });
+      setSaveError(null);
     } catch (error) {
-      console.error(error)
-      setSaveError('Unable to save time entry. Please try again.')
+      console.error(error);
+      setSaveError("Unable to save time entry. Please try again.");
     } finally {
-      setIsSavingEntry(false)
+      setIsSavingEntry(false);
     }
   }
 
   function handleSelectTag(tag: TagOption) {
     setSelectedTags((previous) => {
-      if (previous.some((item) => item.id === tag.id)) return previous
-      return [...previous, tag]
-    })
+      if (previous.some((item) => item.id === tag.id)) return previous;
+      return [...previous, tag];
+    });
   }
 
   function removeTag(tagId: string) {
-    setSelectedTags((previous) => previous.filter((tag) => tag.id !== tagId))
+    setSelectedTags((previous) => previous.filter((tag) => tag.id !== tagId));
   }
 
   async function handleCreateTag(input: { name: string; color: string }) {
-    const trimmed = input.name.trim()
-    if (!trimmed || isCreatingTag) return
-    setIsCreatingTag(true)
+    const trimmed = input.name.trim();
+    if (!trimmed || isCreatingTag) return;
+    setIsCreatingTag(true);
     try {
-      const newTag = await postTag({ name: trimmed, color: input.color })
-      handleSelectTag(newTag)
-      setTagError(null)
-      await queryClient.invalidateQueries({ queryKey: ['tags'] })
+      const newTag = await postTag({ name: trimmed, color: input.color });
+      handleSelectTag(newTag);
+      setTagError(null);
+      await queryClient.invalidateQueries({ queryKey: ["tags"] });
     } catch (error) {
-      console.error(error)
-      setTagError('Unable to create tag. Please try again.')
-      throw error
+      console.error(error);
+      setTagError("Unable to create tag. Please try again.");
+      throw error;
     } finally {
-      setIsCreatingTag(false)
+      setIsCreatingTag(false);
     }
   }
 
@@ -156,24 +168,34 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
           onCreateTag={handleCreateTag}
           isCreatingTag={isCreatingTag}
         />
-        {tagError && (
-          <p className="text-sm text-rose-200/90">{tagError}</p>
-        )}
-        {saveError && (
-          <p className="text-sm text-rose-200/90">{saveError}</p>
-        )}
+        {tagError && <p className="text-sm text-rose-200/90">{tagError}</p>}
+        {saveError && <p className="text-sm text-rose-200/90">{saveError}</p>}
 
         <div className="flex flex-wrap items-center gap-4">
           <p className="font-mono text-4xl tabular-nums text-white drop-shadow-lg sm:text-5xl">
             {formatTime(elapsedSeconds)}
           </p>
           <div className="ml-auto flex items-center gap-3">
+            {elapsedSeconds || isRunning ? (
+              <Button
+                size="icon"
+                onClick={() => {
+                  setIsRunning(false);
+                  setElapsedSeconds(0);
+                }}
+                className={`${buttonMotionClasses} border border-white/30 bg-white/15 text-white hover:bg-white/25 focus-visible:ring-white/60`}
+              >
+                O
+              </Button>
+            ) : (
+              <div></div>
+            )}
             {isRunning ? (
               <Button
                 size="icon"
                 onClick={handleStop}
                 aria-label="Stop timer"
-                className={`${buttonMotionClasses} border border-white/30 bg-white/15 text-white hover:bg-white/25 focus-visible:ring-white/60`}
+                className={`${buttonMotionClasses} border border-white/30 bg-red-500/15 text-white hover:bg-red-500/25 focus-visible:ring-white/60`}
                 disabled={isSavingEntry}
               >
                 <Square className="h-4 w-4" />
@@ -193,74 +215,79 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 async function fetchTags(): Promise<TagOption[]> {
-  const response = await fetch(TAGS_ENDPOINT, { cache: 'no-store' })
+  const response = await fetch(TAGS_ENDPOINT, { cache: "no-store" });
 
   if (!response.ok) {
-    throw new Error('Failed to fetch tags')
+    throw new Error("Failed to fetch tags");
   }
 
-  const payload = await response.json()
-  return normalizeTags(payload)
+  const payload = await response.json();
+  return normalizeTags(payload);
 }
 
-async function postTag(payload: { name: string; color: string }): Promise<TagOption> {
+async function postTag(payload: {
+  name: string;
+  color: string;
+}): Promise<TagOption> {
   const response = await fetch(TAGS_ENDPOINT, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
-  })
+  });
 
   if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(errorText || 'Failed to create tag')
+    const errorText = await response.text();
+    throw new Error(errorText || "Failed to create tag");
   }
 
-  const responsePayload = await response.json()
-  const normalized = toTagOption(responsePayload)
+  const responsePayload = await response.json();
+  const normalized = toTagOption(responsePayload);
   if (!normalized) {
-    throw new Error('Invalid tag response')
+    throw new Error("Invalid tag response");
   }
 
-  return normalized
+  return normalized;
 }
 
 function normalizeTags(input: unknown): TagOption[] {
-  if (!Array.isArray(input)) return []
+  if (!Array.isArray(input)) return [];
 
   return input
     .map((item) => toTagOption(item))
-    .filter((tag): tag is TagOption => Boolean(tag))
+    .filter((tag): tag is TagOption => Boolean(tag));
 }
 
 function toTagOption(item: unknown): TagOption | null {
-  if (typeof item === 'string') {
-    return { id: item, label: item }
+  if (typeof item === "string") {
+    return { id: item, label: item };
   }
 
-  if (!item || typeof item !== 'object') return null
+  if (!item || typeof item !== "object") return null;
 
-  const record = item as Record<string, unknown>
-  const maybeName = typeof record.name === 'string' ? record.name : undefined
-  const maybeLabel = typeof record.label === 'string' ? record.label : maybeName
-  const idValue = record.id != null ? String(record.id) : maybeLabel
-  const maybeColor = typeof record.color === 'string' ? record.color : undefined
+  const record = item as Record<string, unknown>;
+  const maybeName = typeof record.name === "string" ? record.name : undefined;
+  const maybeLabel =
+    typeof record.label === "string" ? record.label : maybeName;
+  const idValue = record.id != null ? String(record.id) : maybeLabel;
+  const maybeColor =
+    typeof record.color === "string" ? record.color : undefined;
 
-  if (!maybeLabel || !idValue) return null
+  if (!maybeLabel || !idValue) return null;
 
-  return { id: idValue, label: maybeLabel, color: maybeColor }
+  return { id: idValue, label: maybeLabel, color: maybeColor };
 }
 
 const fallbackTags: TagOption[] = [
-  { id: 'meeting', label: 'Meeting', color: '#8b5cf6' },
-  { id: 'planning', label: 'Planning', color: '#0ea5e9' },
-  { id: 'design', label: 'Design', color: '#f472b6' },
-  { id: 'development', label: 'Development', color: '#22c55e' },
-  { id: 'testing', label: 'Testing', color: '#f97316' },
-  { id: 'research', label: 'Research', color: '#eab308' },
-]
+  { id: "meeting", label: "Meeting", color: "#8b5cf6" },
+  { id: "planning", label: "Planning", color: "#0ea5e9" },
+  { id: "design", label: "Design", color: "#f472b6" },
+  { id: "development", label: "Development", color: "#22c55e" },
+  { id: "testing", label: "Testing", color: "#f97316" },
+  { id: "research", label: "Research", color: "#eab308" },
+];
