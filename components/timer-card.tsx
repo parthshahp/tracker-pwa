@@ -113,7 +113,10 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
 
     setIsSavingEntry(true);
     try {
-      await stopTimer(currentEntryId);
+      await stopTimer(
+        currentEntryId,
+        selectedTags.map((tag) => String(tag.id)),
+      );
       await syncPendingOps();
       setCurrentEntryId(null);
       await queryClient.invalidateQueries({ queryKey: ["time-entries"] });

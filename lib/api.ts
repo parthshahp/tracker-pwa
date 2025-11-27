@@ -31,8 +31,6 @@ export async function apiCreateTimeEntry(body: CreateEntryPayload) {
 }
 
 export async function apiUpdateTimeEntry(id: string, body: UpdateEntryPayload) {
-  console.log(id);
-  console.log(body);
   const res = await fetch(`${API_ENDPOINTS.timeEntries}/${id}`, {
     method: "PATCH",
     headers: {

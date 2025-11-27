@@ -46,7 +46,7 @@ export async function startTimer(tagIds: string[], note?: string) {
 
   return id;
 }
-export async function stopTimer(entryId: string) {
+export async function stopTimer(entryId: string, tagIds: string[]) {
   const endAt = nowIso();
 
   await db.transaction("rw", db.timeEntries, db.pendingOps, async () => {
@@ -56,6 +56,7 @@ export async function stopTimer(entryId: string) {
     await db.timeEntries.update(entryId, {
       endAt,
       updatedAt: endAt,
+      tagIds: tagIds,
     });
 
     const op: PendingOpRow = {
@@ -65,6 +66,7 @@ export async function stopTimer(entryId: string) {
       payload: {
         id: entryId,
         startAt: entry.startAt,
+        tagIds: tagIds,
         endAt: endAt,
         updatedAt: endAt,
       },
@@ -89,7 +91,7 @@ export async function softDeleteTimeEntry(entryId: string) {
     const op: PendingOpRow = {
       entryId,
       createdAt: now,
-      type: "DELETE_ENTRY",
+      type: "SOFT_DELETE_ENTRY",
       payload: {
         deleted: 1,
         updatedAt: now,
