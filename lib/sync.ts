@@ -24,7 +24,7 @@ export async function syncPendingOps() {
           await apiUpdateTimeEntry(op.entryId, op.payload);
           break;
 
-        case "DELETE_ENTRY":
+        case "SOFT_DELETE_ENTRY":
           await apiSoftDeleteTimeEntry(op.entryId);
           break;
       }

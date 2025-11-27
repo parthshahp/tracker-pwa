@@ -24,7 +24,7 @@ export type DeleteEntryPayload = {
 export const pendingOpPayloads = {
   CREATE_ENTRY: {} as CreateEntryPayload,
   UPDATE_ENTRY: {} as UpdateEntryPayload,
-  DELETE_ENTRY: {} as DeleteEntryPayload,
+  SOFT_DELETE_ENTRY: {} as DeleteEntryPayload,
 } as const;
 
 export type PendingOpType = keyof typeof pendingOpPayloads;

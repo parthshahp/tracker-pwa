@@ -2,13 +2,14 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Play, Square } from "lucide-react";
+import { Play, Square, RotateCcw } from "lucide-react";
 
 import { TagSelector, type TagOption } from "@/components/tag-selector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { API_ENDPOINTS } from "@/lib/api";
 import { startTimer, stopTimer } from "@/lib/commands";
+import { softDeleteTimeEntry } from "@/lib/commands";
 import { syncPendingOps } from "@/lib/sync";
 
 type TagLike =
@@ -65,7 +66,7 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
   const [tagError, setTagError] = useState<string | null>(null);
   const [isCreatingTag, setIsCreatingTag] = useState(false);
   const buttonMotionClasses =
-    "transition-transform duration-150 ease-in-out active:scale-90";
+    "transition-transform duration-150 ease-in-out active:scale-95";
 
   useEffect(() => {
     if (!isRunning) return;
@@ -125,6 +126,18 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
     }
   }
 
+  async function handleReset() {
+    if (!isRunning || isSavingEntry) return;
+
+    setIsRunning(false);
+    setElapsedSeconds(0);
+
+    await softDeleteTimeEntry(String(currentEntryId));
+    await syncPendingOps();
+
+    setCurrentEntryId(null);
+  }
+
   function handleSelectTag(tag: TagOption) {
     setSelectedTags((previous) => {
       if (previous.some((item) => item.id === tag.id)) return previous;
@@ -160,12 +173,12 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
         <TagSelector
           availableTags={availableTags}
           selectedTags={selectedTags}
-          onSelectTag={handleSelectTag}
-          onRemoveTag={removeTag}
+          onSelectTagAction={handleSelectTag}
+          onRemoveTagAction={removeTag}
           isLoading={isLoading}
           isError={isError}
           buttonClassName={buttonMotionClasses}
-          onCreateTag={handleCreateTag}
+          onCreateTagAction={handleCreateTag}
           isCreatingTag={isCreatingTag}
         />
         {tagError && <p className="text-sm text-rose-200/90">{tagError}</p>}
@@ -179,13 +192,10 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
             {elapsedSeconds || isRunning ? (
               <Button
                 size="icon"
-                onClick={() => {
-                  setIsRunning(false);
-                  setElapsedSeconds(0);
-                }}
+                onClick={handleReset}
                 className={`${buttonMotionClasses} border border-white/30 bg-white/15 text-white hover:bg-white/25 focus-visible:ring-white/60`}
               >
-                O
+                <RotateCcw />
               </Button>
             ) : (
               <div></div>

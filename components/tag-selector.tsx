@@ -5,11 +5,13 @@ import {
   type FocusEvent,
   type KeyboardEvent,
   type ReactNode,
+  useLayoutEffect,
   useId,
   useMemo,
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { Plus, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -43,24 +45,24 @@ export type TagOption = { id: string; label: string; color?: string | null };
 type TagSelectorProps = {
   availableTags: TagOption[];
   selectedTags: TagOption[];
-  onSelectTag: (tag: TagOption) => void;
-  onRemoveTag: (tagId: string) => void;
+  onSelectTagAction: (tag: TagOption) => void;
+  onRemoveTagAction: (tagId: string) => void;
   isLoading?: boolean;
   isError?: boolean;
   buttonClassName?: string;
-  onCreateTag?: (input: { name: string; color: string }) => Promise<void>;
+  onCreateTagAction?: (input: { name: string; color: string }) => Promise<void>;
   isCreatingTag?: boolean;
 };
 
 export function TagSelector({
   availableTags,
   selectedTags,
-  onSelectTag,
-  onRemoveTag,
+  onSelectTagAction,
+  onRemoveTagAction,
   isLoading,
   isError,
   buttonClassName,
-  onCreateTag,
+  onCreateTagAction,
   isCreatingTag,
 }: TagSelectorProps) {
   const [search, setSearch] = useState("");
@@ -70,6 +72,8 @@ export function TagSelector({
   const [pendingTagName, setPendingTagName] = useState("");
   const [pendingTagColor, setPendingTagColor] = useState(DEFAULT_TAG_COLOR);
   const inputRef = useRef<HTMLInputElement>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const dialogNameId = useId();
   const dialogColorId = useId();
 
@@ -92,7 +96,7 @@ export function TagSelector({
     return pool.filter((tag) => tag.label.toLowerCase().includes(query));
   }, [availableTags, selectedIds, trimmedSearch]);
 
-  const showCreateOption = Boolean(onCreateTag) && Boolean(trimmedSearch);
+  const showCreateOption = Boolean(onCreateTagAction) && Boolean(trimmedSearch);
   const optionItems = useMemo(() => {
     const tagOptions = filteredTags.map((tag) => ({
       type: "tag" as const,
@@ -109,8 +113,8 @@ export function TagSelector({
     () =>
       ({
         maxHeight: popoverMaxHeight,
-        backdropFilter: "blur(40px)",
-        WebkitBackdropFilter: "blur(40px)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
         background:
           "linear-gradient(180deg, rgba(5,7,15,0.72) 0%, rgba(9,13,25,0.82) 55%, rgba(4,6,12,0.78) 100%)",
       }) satisfies CSSProperties,
@@ -119,7 +123,25 @@ export function TagSelector({
   const inputContainerClassName =
     "glass-panel glass-panel-strong flex min-h-13 w-full flex-wrap items-center gap-2 rounded-2xl border border-white/20 px-4 py-2 text-sm shadow-lg transition focus-within:ring-2 focus-within:ring-white/50";
   const dropdownContainerClassName =
-    "absolute inset-x-0 top-full z-20 mt-3 overflow-hidden rounded-2xl border border-white/25 p-1 text-sm text-white shadow-2xl shadow-black/70 backdrop-blur-3xl";
+    "z-50 overflow-hidden rounded-2xl border border-white/25 p-1 text-sm text-white shadow-2xl shadow-black/70";
+
+  useLayoutEffect(() => {
+    if (!isListVisible) return;
+    const el = anchorRef.current;
+    if (!el) return;
+    setAnchorRect(el.getBoundingClientRect());
+  }, [isListVisible, selectedTags.length]);
+
+  useLayoutEffect(() => {
+    if (!isListVisible) return;
+    function handleResize() {
+      const el = anchorRef.current;
+      if (!el) return;
+      setAnchorRect(el.getBoundingClientRect());
+    }
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [isListVisible]);
 
   function renderLabel(label: string) {
     if (!trimmedSearch) return label;
@@ -142,7 +164,7 @@ export function TagSelector({
   }
 
   function handleSelect(tag: TagOption) {
-    onSelectTag(tag);
+    onSelectTagAction(tag);
     setSearch("");
     setActiveTagId(null);
     requestAnimationFrame(() => {
@@ -159,7 +181,7 @@ export function TagSelector({
   }
 
   function handleCreateOption() {
-    if (!onCreateTag || !trimmedSearch) return;
+    if (!onCreateTagAction || !trimmedSearch) return;
     setPendingTagName(trimmedSearch);
     setIsCreateDialogOpen(true);
     setIsListVisible(false);
@@ -167,13 +189,13 @@ export function TagSelector({
   }
 
   async function handleConfirmCreateTag() {
-    if (!onCreateTag) return;
+    if (!onCreateTagAction) return;
     const trimmedName = pendingTagName.trim();
     if (!trimmedName) return;
     const normalizedColor =
       normalizeHexColor(pendingTagColor) ?? DEFAULT_TAG_COLOR;
     try {
-      await onCreateTag({ name: trimmedName, color: normalizedColor });
+      await onCreateTagAction({ name: trimmedName, color: normalizedColor });
       setSearch("");
       setPendingTagName("");
       setPendingTagColor(DEFAULT_TAG_COLOR);
@@ -199,7 +221,7 @@ export function TagSelector({
     if (!tag) return;
     const nextTag = selectedTags[index + 1] ?? selectedTags[index - 1];
     setActiveTagId(nextTag?.id ?? null);
-    onRemoveTag(tag.id);
+    onRemoveTagAction(tag.id);
   }
 
   function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -255,7 +277,7 @@ export function TagSelector({
       onFocusCapture={() => setIsListVisible(true)}
       onBlurCapture={handleBlur}
     >
-      <div className="relative">
+      <div ref={anchorRef} className="relative">
         <div
           className={cn(
             inputContainerClassName,
@@ -294,8 +316,9 @@ export function TagSelector({
           />
         </div>
 
-        <TagOptionsDropdown
-          isVisible={isListVisible}
+        <TagOptionsDropdownPortal
+          isVisible={isListVisible && !!anchorRect}
+          anchorRect={anchorRect}
           containerClassName={dropdownContainerClassName}
           style={popoverStyle}
           onRequestFocus={(event) => {
@@ -335,6 +358,40 @@ type SelectedTagChipProps = {
   buttonClassName?: string;
   onRemove: () => void;
 };
+
+type TagOptionsDropdownPortalProps = TagOptionsDropdownProps & {
+  anchorRect: DOMRect | null;
+};
+
+function TagOptionsDropdownPortal({
+  isVisible,
+  anchorRect,
+  containerClassName,
+  style,
+  ...rest
+}: TagOptionsDropdownPortalProps) {
+  if (!isVisible || !anchorRect) return null;
+  if (typeof document === "undefined") return null;
+
+  const { left, width, bottom } = anchorRect;
+  const positionedStyle: CSSProperties = {
+    position: "fixed",
+    top: bottom + 8,
+    left,
+    width,
+    ...style,
+  };
+
+  return createPortal(
+    <TagOptionsDropdown
+      {...rest}
+      isVisible
+      containerClassName={containerClassName}
+      style={positionedStyle}
+    />,
+    document.body,
+  );
+}
 
 function SelectedTagChip({
   tag,
