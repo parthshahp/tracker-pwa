@@ -131,7 +131,7 @@
 
   .glass-panel-strong {
     @apply backdrop-blur-2xl;
-    background-color: rgba(0, 0, 0, 0.1) !important;
+    background-color: rgba(0, 0, 0, 0.25) !important;
     border-color: rgba(255, 255, 255, 0.2) !important;
   }
 }
@@ -142,8 +142,7 @@
   width: 100dvw;
   height: 100dvh;
   overflow: hidden;
-  /* TODO: Change the z-index */
-  z-index: 1;
+  z-index: -1;
   background:
     linear-gradient(to bottom left,
       rgb(168 164 216 / 50%),
