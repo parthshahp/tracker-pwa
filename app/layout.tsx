@@ -41,11 +41,7 @@ export default function RootLayout({
         )}
       >
         <div className="relative min-h-screen overflow-hidden">
-          {/* background glow blobs */}
-          <div className="pointer-events-none absolute inset-0 -z-10">
-            <div className="absolute -top-32 -left-16 h-80 w-80 rounded-full bg-emerald-500/20 blur-3xl" />
-            <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-sky-500/15 blur-3xl" />
-          </div>
+          <div className="background-gradient" aria-hidden="true" />
           <SyncProvider>
             <QueryProvider>{children}</QueryProvider>
           </SyncProvider>
