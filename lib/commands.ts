@@ -101,3 +101,76 @@ export async function softDeleteTimeEntry(entryId: string) {
     await db.pendingOps.add(op);
   });
 }
+
+export async function createTag(input: {
+  name: string;
+  color?: string | null;
+}) {
+  const id = uuid();
+  const now = nowIso();
+  const trimmedName = input.name.trim();
+  if (!trimmedName) {
+    throw new Error("Tag name is required");
+  }
+  const payload = {
+    id,
+    name: trimmedName,
+    color: input.color ?? null,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const op: PendingOpRow = {
+    entryId: id,
+    createdAt: now,
+    type: "CREATE_TAG",
+    payload,
+  };
+
+  await db.pendingOps.add(op);
+
+  return payload;
+}
+
+export async function updateTag(
+  tagId: string,
+  updates: { name?: string; color?: string | null },
+) {
+  const now = nowIso();
+  const normalizedName = updates.name?.trim();
+  const payload = {
+    id: tagId,
+    name: normalizedName ? normalizedName : undefined,
+    color: updates.color ?? undefined,
+    updatedAt: now,
+  };
+
+  if (!payload.name && payload.color === undefined) {
+    return;
+  }
+
+  const op: PendingOpRow = {
+    entryId: tagId,
+    createdAt: now,
+    type: "UPDATE_TAG",
+    payload,
+  };
+
+  await db.pendingOps.add(op);
+}
+
+export async function deleteTag(tagId: string) {
+  const now = nowIso();
+
+  const op: PendingOpRow = {
+    entryId: tagId,
+    createdAt: now,
+    type: "DELETE_TAG",
+    payload: {
+      deleted: 1,
+      updatedAt: now,
+    },
+  };
+
+  await db.pendingOps.add(op);
+}

@@ -15,7 +15,7 @@ export type TimeEntryRow = {
 
 export type PendingOpRow = {
   id?: number;
-  entryId: string;
+  entryId: string; // time entry id or tag id, depending on op type
   createdAt: string;
 } & PendingOpUnion;
 

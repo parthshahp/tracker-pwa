@@ -1,4 +1,10 @@
-import { CreateEntryPayload, UpdateEntryPayload } from "@/db/ops";
+import {
+  CreateEntryPayload,
+  CreateTagPayload,
+  DeleteTagPayload,
+  UpdateEntryPayload,
+  UpdateTagPayload,
+} from "@/db/ops";
 const DEFAULT_BASE_URL = "http://localhost:8787";
 
 export const API_BASE_URL =
@@ -56,6 +62,54 @@ export async function apiSoftDeleteTimeEntry(id: string) {
 
   if (!res.ok) {
     throw new Error(`Delete failed: ${res.status}`);
+  }
+
+  return res.json().catch(() => undefined);
+}
+
+export async function apiCreateTag(body: CreateTagPayload) {
+  const res = await fetch(API_ENDPOINTS.tags, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Create tag failed: ${res.status}`);
+  }
+
+  return res.json().catch(() => undefined);
+}
+
+export async function apiUpdateTag(id: string, body: UpdateTagPayload) {
+  const res = await fetch(`${API_ENDPOINTS.tags}/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Update tag failed: ${res.status}`);
+  }
+
+  return res.json().catch(() => undefined);
+}
+
+export async function apiDeleteTag(id: string, body?: DeleteTagPayload) {
+  const res = await fetch(`${API_ENDPOINTS.tags}/${id}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (!res.ok) {
+    throw new Error(`Delete tag failed: ${res.status}`);
   }
 
   return res.json().catch(() => undefined);

@@ -8,8 +8,12 @@ import { TagSelector, type TagOption } from "@/components/tag-selector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { API_ENDPOINTS } from "@/lib/api";
-import { startTimer, stopTimer } from "@/lib/commands";
-import { softDeleteTimeEntry } from "@/lib/commands";
+import {
+  createTag as createTagCommand,
+  softDeleteTimeEntry,
+  startTimer,
+  stopTimer,
+} from "@/lib/commands";
 import { syncPendingOps } from "@/lib/sync";
 
 type TagLike =
@@ -157,9 +161,15 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
     if (!trimmed || isCreatingTag) return;
     setIsCreatingTag(true);
     try {
-      const newTag = await postTag({ name: trimmed, color: input.color });
+      const payload = await createTagCommand({
+        name: trimmed,
+        color: input.color,
+      });
+      const newTag = toTagOption(payload);
+      if (!newTag) throw new Error("Invalid tag response");
       handleSelectTag(newTag);
       setTagError(null);
+      await syncPendingOps();
       await queryClient.invalidateQueries({ queryKey: ["tags"] });
     } catch (error) {
       console.error(error);
@@ -240,32 +250,6 @@ async function fetchTags(): Promise<TagOption[]> {
 
   const payload = await response.json();
   return normalizeTags(payload);
-}
-
-async function postTag(payload: {
-  name: string;
-  color: string;
-}): Promise<TagOption> {
-  const response = await fetch(TAGS_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || "Failed to create tag");
-  }
-
-  const responsePayload = await response.json();
-  const normalized = toTagOption(responsePayload);
-  if (!normalized) {
-    throw new Error("Invalid tag response");
-  }
-
-  return normalized;
 }
 
 function normalizeTags(input: unknown): TagOption[] {
