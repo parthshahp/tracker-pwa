@@ -3,8 +3,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Play, Square, RotateCcw } from "lucide-react";
+import type { Tag } from "@/types";
 
 import { TagSelector, type TagOption } from "@/components/tag-selector";
+import TagSettings from "@/components/tag-settings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { API_ENDPOINTS } from "@/lib/api";
@@ -15,21 +17,6 @@ import {
   stopTimer,
 } from "@/lib/commands";
 import { syncPendingOps } from "@/lib/sync";
-
-type TagLike =
-  | string
-  | {
-    id?: string | number;
-    name?: string;
-    label?: string;
-    color?: string | null;
-  }
-  | {
-    id?: string | number;
-    name?: string;
-    label?: string;
-    color?: string | null;
-  };
 
 const { tags: TAGS_ENDPOINT } = API_ENDPOINTS;
 
@@ -43,7 +30,7 @@ function formatTime(totalSeconds: number) {
     .join(":");
 }
 
-export default function TimerCard({ tags }: { tags?: TagLike[] }) {
+export default function TimerCard({ tags }: { tags?: Tag[] }) {
   const queryClient = useQueryClient();
   const {
     data: remoteTags = [],
@@ -183,20 +170,26 @@ export default function TimerCard({ tags }: { tags?: TagLike[] }) {
   return (
     <Card className="w-full max-w-2xl glass-panel glass-panel-strong border-white/20 py-0 shadow-2xl shadow-black/40">
       <CardContent className="space-y-6 px-5 py-6 text-white/90 sm:px-8 sm:py-8">
-        <TagSelector
-          availableTags={availableTags}
-          selectedTags={selectedTags}
-          onSelectTagAction={handleSelectTag}
-          onRemoveTagAction={removeTag}
-          isLoading={isLoading}
-          isError={isError}
-          buttonClassName={buttonMotionClasses}
-          onCreateTagAction={handleCreateTag}
-          isCreatingTag={isCreatingTag}
-        />
+        <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <TagSelector
+              availableTags={availableTags}
+              selectedTags={selectedTags}
+              onSelectTagAction={handleSelectTag}
+              onRemoveTagAction={removeTag}
+              isLoading={isLoading}
+              isError={isError}
+              buttonClassName={buttonMotionClasses}
+              onCreateTagAction={handleCreateTag}
+              isCreatingTag={isCreatingTag}
+            />
+          </div>
+          <div className="shrink-0">
+            <TagSettings tags={availableTags} />
+          </div>
+        </div>
         {tagError && <p className="text-sm text-rose-200/90">{tagError}</p>}
         {saveError && <p className="text-sm text-rose-200/90">{saveError}</p>}
-
         <div className="flex flex-wrap items-center gap-4">
           <p className="font-mono text-4xl tabular-nums text-white drop-shadow-lg sm:text-5xl">
             {formatTime(elapsedSeconds)}

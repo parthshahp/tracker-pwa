@@ -83,7 +83,7 @@ export default function TimeEntriesList() {
           .map((entry) => (
             <li
               key={entry.id}
-              className="group flex items-start gap-4 py-3 px-2 text-xs text-white/85 transition-colors hover:bg-white/5 focus-within:bg-white/10 sm:items-center sm:text-sm"
+              className="group flex rounded-lg items-start gap-4 py-3 px-2 text-xs text-white/85 transition-colors hover:bg-white/5 focus-within:bg-white/10 sm:items-center sm:text-sm"
             >
               <div className="flex flex-1 flex-col gap-1">
                 <div className="flex flex-wrap items-center gap-1 font-medium">

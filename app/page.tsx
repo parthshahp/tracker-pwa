@@ -3,7 +3,7 @@ import TimeEntriesList from "@/components/time-entries-list";
 
 export default function Home() {
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-10">
+    <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-10 px-2 md:px-0">
       <div className="sticky top-6 z-10 w-full max-w-2xl drop-shadow-2xl">
         <TimerCard />
       </div>
