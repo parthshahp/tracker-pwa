@@ -19,13 +19,13 @@ export default function SignUp() {
       },
       {
         onRequest: (ctx) => {
-          console.log("attempting to create user");
+          console.log("attempting to create user", ctx);
         },
         onSuccess: (ctx) => {
-          console.log("created new user");
+          console.log("created new user", ctx);
         },
         onError: (ctx) => {
-          console.log("Creating new user errored");
+          console.log("Creating new user errored", ctx);
         },
       },
     );
