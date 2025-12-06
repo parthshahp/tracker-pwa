@@ -7,7 +7,7 @@ export default function Home() {
       <div className="sticky top-6 z-10 w-full max-w-2xl drop-shadow-2xl">
         <TimerCard />
       </div>
-      <section className="glass-panel glass-panel-strong w-full max-w-2xl space-y-4 rounded-3xl border-white/10 py-6 px-4 shadow-2xl shadow-black/40 sm:py-8">
+      <section className="glass-panel w-full max-w-2xl space-y-4 py-6 px-4 sm:py-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold text-white">Recent entries</h2>

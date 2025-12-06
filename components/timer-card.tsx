@@ -45,7 +45,7 @@ export default function TimerCard({ tags }: { tags?: Tag[] }) {
   const availableTags = useMemo<TagOption[]>(() => {
     if (remoteTags.length) return remoteTags;
     if (providedTags.length) return providedTags;
-    return fallbackTags;
+    return [];
   }, [remoteTags, providedTags]);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
@@ -168,7 +168,7 @@ export default function TimerCard({ tags }: { tags?: Tag[] }) {
   }
 
   return (
-    <Card className="w-full max-w-2xl glass-panel glass-panel-strong border-white/20 py-0 shadow-2xl shadow-black/40">
+    <Card className="w-full max-w-2xl glass-panel">
       <CardContent className="space-y-6 px-5 py-6 text-white/90 sm:px-8 sm:py-8">
         <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
@@ -272,12 +272,3 @@ function toTagOption(item: unknown): TagOption | null {
 
   return { id: idValue, label: maybeLabel, color: maybeColor };
 }
-
-const fallbackTags: TagOption[] = [
-  { id: "meeting", label: "Meeting", color: "#8b5cf6" },
-  { id: "planning", label: "Planning", color: "#0ea5e9" },
-  { id: "design", label: "Design", color: "#f472b6" },
-  { id: "development", label: "Development", color: "#22c55e" },
-  { id: "testing", label: "Testing", color: "#f97316" },
-  { id: "research", label: "Research", color: "#eab308" },
-];

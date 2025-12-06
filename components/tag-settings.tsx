@@ -1,10 +1,7 @@
-"use client";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
-  SheetClose,
   SheetContent,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -32,22 +29,19 @@ export default function TagSettings({ tags }: Props) {
         </Button>
       </SheetTrigger>
       <SheetContent
-        side="bottom"
-        className="h-[90vh] bg-transparent backdrop-blur-lg"
+        side={"right"}
+        className="w-screen bg-transparent backdrop-blur-lg sm:max-w-none md:max-w-sm border-none md:border-white/10"
       >
         <SheetHeader>
-          <SheetTitle>Manage Tags</SheetTitle>
+          <SheetTitle className="text-primary-foreground">
+            Manage Tags
+          </SheetTitle>
         </SheetHeader>
-        <div>
+        <div className="divide-y divide-white/10">
           {tags.map((tag) => (
             <TagRow tag={tag} key={tag.id} />
           ))}
         </div>
-        <SheetFooter>
-          <SheetClose asChild>
-            <Button variant="outline">Close</Button>
-          </SheetClose>
-        </SheetFooter>
       </SheetContent>
     </Sheet>
   );
@@ -57,12 +51,8 @@ function TagRow({ tag }: { tag: Tag }) {
   const tagColor = normalizeHexColor(tag.color) ?? DEFAULT_TAG_COLOR;
   const [pendingTagColor, setPendingTagColor] = useState(tagColor);
 
-  if (tag.label === "Work") {
-    console.log(tag);
-  }
-
   return (
-    <div className="flex items-center justify-between gap-3 rounded-md px-3 py-2">
+    <div className="flex items-center justify-between gap-3 px-3 py-2 hover:bg-white/5">
       <div className="flex items-center gap-2">
         <ColorSelection
           initialColor={pendingTagColor}
